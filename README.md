@@ -4,6 +4,47 @@ Offline restaurant billing and order management for Windows, for restaurants, ca
 
 Each shop configures its own branding, menu and owner account. Everyday operation needs no internet, subscription or cloud account. Current version: **0.1.6**, an early pilot release.
 
+## Screenshots
+
+Captured from the real desktop application using a fictional demo shop and synthetic records. No private business or customer data is shown.
+
+### Point of sale
+
+Browse the menu, build an order and take payment with checkout always visible.
+
+![Serveo point of sale with product photos, order basket and cash payment](docs/screenshots/point-of-sale.png)
+
+### Overview
+
+Daily sales, active orders, outstanding balances, cash and low-stock alerts.
+
+![Serveo overview with sample sales, live orders and low-stock alerts](docs/screenshots/overview.png)
+
+<details>
+<summary>See orders, menu, product images, reports and invoice preview</summary>
+
+### Orders
+
+![Serveo order list showing service, preparation and payment statuses](docs/screenshots/orders.png)
+
+### Menu and stock
+
+![Serveo menu items with categories, prices, tracked stock and edit controls](docs/screenshots/menu-and-stock.png)
+
+### Product editor
+
+![Serveo product editor with image upload, price, variant and stock controls](docs/screenshots/product-editor.png)
+
+### Reports
+
+![Serveo reports with sales, collections, expenses, payment methods and best sellers](docs/screenshots/reports.png)
+
+### Invoice preview
+
+![Serveo A4 delivery invoice preview with fictional customer and rider details](docs/screenshots/invoice.png)
+
+</details>
+
 ## Install
 
 1. Download **Serveo Setup 0.1.6.exe** from [Releases](https://github.com/hassan-pk/serveo/releases).
@@ -78,6 +119,8 @@ Tests use isolated temporary databases through `SERVEO_DATA_DIR`. The service ma
 - `build/`: application icons.
 
 The renderer is sandboxed and context-isolated. Writes and permissions are enforced in the main process behind an explicit preload API.
+
+To regenerate the documentation screenshots after building, run `node scripts/generate-screenshots.cjs`. It creates an isolated temporary demo database and writes images to `docs/screenshots/`.
 
 ## Current limits
 
