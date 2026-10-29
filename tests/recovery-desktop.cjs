@@ -1,0 +1,82 @@
+const { _electron: electron, expect } = require('@playwright/test');
+const { mkdtempSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const directory = mkdtempSync(path.join(tmpdir(), 'serveo-recovery-ui-'));
+const firstToken = 'first private recovery phrase';
+const latestToken = 'latest private recovery phrase';
+let app, page;
+const errors = [];
+async function launch() {
+  const env = { ...process.env, SERVEO_DATA_DIR: directory };
+  delete env.ELECTRON_RUN_AS_NODE; delete env.SERVEO_DEV_URL;
+  app = await electron.launch(process.env.SERVEO_TEST_EXECUTABLE ? { executablePath: path.resolve(process.env.SERVEO_TEST_EXECUTABLE), args: [], env } : { args: [path.resolve('.')], env });
+  page = await app.firstWindow();page.on('pageerror', error => errors.push(error.message));
+}
+async function verify(token) {
+  await page.getByLabel('Username', { exact: true }).fill('owner');
+  await page.getByLabel('Recovery token', { exact: true }).fill(token);
+  await page.getByRole('button', { name: 'Verify token', exact: true }).click();
+}
+async function reset(password) {
+  await page.getByLabel('New password', { exact: true }).fill(password);
+  await page.getByLabel('Confirm new password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Reset password & sign in', exact: true }).click();
+  await expect(page.locator('.sidebar')).toBeVisible();
+}
+(async () => {
+  await launch();
+  await page.getByLabel('Shop name', { exact: true }).fill('Recovery Test Cafe');
+  await page.getByLabel('Your name', { exact: true }).fill('Owner');
+  await page.getByLabel('Username', { exact: true }).fill('owner');
+  await page.getByLabel('Password', { exact: true }).fill('original-password');
+  await page.getByText('Add a recovery token (optional)', { exact: true }).click();
+  await page.getByLabel('Recovery token', { exact: true }).fill(firstToken);
+  await page.getByRole('button', { name: 'Create my shop', exact: true }).click();
+  await expect(page.locator('.sidebar')).toBeVisible();
+  assert.equal((await page.evaluate(() => window.serveo.snapshot())).user.recoveryEnabled, true);
+  await page.locator('[data-action="logout"]').click();
+  await page.getByRole('button', { name: 'Forgot password?', exact: true }).click();
+  await verify('incorrect-recovery-token');
+  await expect(page.getByRole('alert')).toContainText('Username or recovery token is incorrect');
+  await expect(page.getByRole('button', { name: 'Reset password & sign in', exact: true })).toHaveCount(0);
+  await verify(firstToken);
+  await expect(page.getByRole('heading', { name: 'Set a new password.', exact: true })).toBeVisible();
+  await page.getByLabel('New password', { exact: true }).fill('recovered-password');
+  await page.getByLabel('Confirm new password', { exact: true }).fill('different-password');
+  await page.getByRole('button', { name: 'Reset password & sign in', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('New passwords do not match');
+  await reset('recovered-password');
+  assert.equal((await page.evaluate(() => window.serveo.snapshot())).shop.name,'Recovery Test Cafe');
+  await page.getByRole('button', { name: 'Change password for Owner', exact: true }).click();
+  await page.getByRole('button', { name: 'Replace recovery token', exact: true }).click();
+  await page.getByLabel('Current password', { exact: true }).fill('recovered-password');
+  await page.getByLabel('New recovery token', { exact: true }).fill(latestToken);
+  await page.getByLabel('Confirm recovery token', { exact: true }).fill(latestToken);
+  await page.getByRole('button', { name: 'Save recovery token', exact: true }).click();
+  await expect(page.locator('.modal')).toHaveCount(0);
+  await page.locator('[data-action="logout"]').click();
+  await page.getByRole('button', { name: 'Forgot password?', exact: true }).click();
+  await verify(firstToken);await expect(page.getByRole('alert')).toContainText('Username or recovery token is incorrect');
+  await verify(latestToken);await reset('latest-owner-password');
+  await page.locator('[data-action="nav:settings"]').click();
+  await page.locator('[data-action="new-user"]').click();
+  await page.getByLabel('Full name', { exact: true }).fill('Cashier');
+  await page.getByLabel('Username', { exact: true }).fill('cashier');
+  await page.getByLabel('Password', { exact: true }).fill('cashier-password');
+  await page.getByText('Add a recovery token (optional)', { exact: true }).click();
+  await page.getByLabel('Recovery token', { exact: true }).fill('private cashier recovery phrase');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.locator('.modal')).toHaveCount(0);
+  await app.close();await launch();
+  await page.getByRole('button', { name: 'Forgot password?', exact: true }).click();
+  await page.getByLabel('Username', { exact: true }).fill('cashier');
+  await page.getByLabel('Recovery token', { exact: true }).fill('private cashier recovery phrase');
+  await page.getByRole('button', { name: 'Verify token', exact: true }).click();
+  await reset('new-cashier-password');
+  const snapshot=await page.evaluate(() => window.serveo.snapshot());
+  assert.equal(snapshot.user.role,'cashier');assert.equal(snapshot.shop.name,'Recovery Test Cafe');
+  assert.deepEqual(errors,[]);
+  console.log('Recovery desktop passed: optional owner/team signup tokens, wrong-token rejection, two-step recovery, confirmation validation, automatic sign-in, replacing token invalidates old token, cashier recovery after restart. Isolated database:',directory);
+})().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{if(app)await app.close().catch(()=>{});});

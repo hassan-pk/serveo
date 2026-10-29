@@ -1,0 +1,32 @@
+node_modules/
+dist/
+dist-test/
+release/
+test-results/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-journal
+*.sqlite-journal
+*.bak
+*.log
+.env
+.env.*
+backups/
+coverage/
+playwright-report/
+# Private prototype, business imports and local handoff notes
+/app.js
+/index.html
+/styles.css
+/logo.jpeg
+/product-images/
+/WhatsApp Image*.jpeg
+/PROTOTYPE-README.md
+/BUILD-STATUS.md
+/EXPLORATION.md
+/SERVEO-PLAN.md
+/data/
+/scripts/import-menu.cjs
+/tests/visual-review.cjs

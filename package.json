@@ -1,0 +1,64 @@
+{
+  "name": "serveo",
+  "version": "0.1.6",
+  "description": "Offline restaurant point of sale for Windows",
+  "author": "Serveo",
+  "license": "MIT",
+  "private": true,
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "npm run build:main && concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && cross-env SERVEO_DEV_URL=http://127.0.0.1:5173 electron .\"",
+    "build:main": "tsc -p tsconfig.main.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit",
+    "build": "npm run typecheck && npm run build:main && vite build",
+    "start": "npm run build && electron .",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/tests/*.test.js",
+    "test:desktop": "npm run build && node tests/desktop-smoke.cjs",
+    "test:accounts": "npm run build && node tests/password-desktop.cjs && node tests/recovery-desktop.cjs",
+    "dist": "npm run build && electron-builder --win nsis",
+    "pack": "npm run build && electron-builder --win --dir"
+  },
+  "build": {
+    "appId": "com.serveo.desktop",
+    "productName": "Serveo",
+    "directories": {
+      "output": "release"
+    },
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md",
+      "README.md"
+    ],
+    "asar": true,
+    "win": {
+      "icon": "build/icon.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.19.2",
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "wait-on": "^9.5.1"
+  }
+}
